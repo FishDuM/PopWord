@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>单词学习系统设置</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 15px;
+      width: 250px;
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e0e0e0;
+    }
+    h1 {
+      font-size: 16px;
+      margin-bottom: 15px;
+      color: #333;
+    }
+    .setting-item {
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .setting-label {
+      font-size: 13px;
+      color: #333;
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 20px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 20px;
+    }
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .toggle-slider {
+      background-color: #2196F3;
+    }
+    input:checked + .toggle-slider:before {
+      transform: translateX(20px);
+    }
+    .status-message {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #4CAF50;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+    <h1 style="font-size: 16px; margin: 0; color: #333;">PopWord 弹词</h1>
+  </div>
+  
+  <div class="setting-item">
+    <span class="setting-label">单词和汉字同时出现</span>
+    <label class="toggle-switch">
+      <input type="checkbox" id="showBoth">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  
+  <div class="setting-item">
+    <span class="setting-label">播放单词录音</span>
+    <label class="toggle-switch">
+      <input type="checkbox" id="playAudio">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  
+  <div class="setting-item">
+    <span class="setting-label">元素消失时间 (秒)</span>
+    <input type="number" id="fadeTime" min="1" max="10" value="2" style="width: 60px; padding: 4px; border: 1px solid #ddd; border-radius: 4px;">
+  </div>
+  
+  <div class="setting-item">
+    <span class="setting-label">词库选择</span>
+    <select id="wordLibrary" style="width: 120px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+      <option value="default.json">默认词库</option>
+      <option value="basic.json">基础词库</option>
+    </select>
+  </div>
+  
+  <div class="setting-item">
+    <span class="setting-label">音频API</span>
+    <input type="text" id="audioApi" style="width: 180px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;" placeholder="输入音频API地址">
+  </div>
+  
+  <button class="save-button" id="saveButton" style="margin-top: 15px; width: 100%; padding: 8px; background-color: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">保存设置</button>
+  
+  <button class="save-button" id="clearCacheButton" style="margin-top: 10px; width: 100%; padding: 8px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">删除缓存</button>
+  
+  <button class="save-button" id="resetLibraryButton" style="margin-top: 10px; width: 100%; padding: 8px; background-color: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">重置词库</button>
+  
+  <button class="save-button" id="monitoringPanelButton" style="margin-top: 10px; width: 100%; padding: 8px; background-color: #9c27b0; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">监控面板</button>
+  
+  <div id="cacheInfo" style="margin-top: 10px; font-size: 12px; color: #666; text-align: center;">当前缓存: 0 个音频</div>
+  
+  <!-- 监控面板 -->
+  <div id="monitoringPanel" style="display: none; margin-top: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #f9f9f9;">
+    <h3 style="margin-top: 0; font-size: 14px; color: #333;">监控面板</h3>
+    <div id="monitoringContent" style="max-height: 300px; overflow-y: auto;">
+      <!-- 监控数据将在这里显示 -->
+    </div>
+    <button id="closeMonitoringPanel" style="margin-top: 10px; width: 100%; padding: 6px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">关闭</button>
+  </div>
+  
+  <div class="status-message" id="statusMessage">设置已保存</div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

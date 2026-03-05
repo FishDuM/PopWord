@@ -1,0 +1,44 @@
+.word-effect {
+  position: fixed;
+  font-family: Arial, sans-serif;
+  z-index: 9999;
+  pointer-events: none;
+  transition: opacity 1.5s ease, transform 1.5s ease;
+  white-space: nowrap;
+}
+
+.word-effect.word {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px 12px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.word-effect.meaning {
+  font-size: 14px;
+  color: #666;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 6px 10px;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.word-effect.word-with-meaning {
+  font-size: 16px;
+  color: #333;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px 14px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  white-space: pre-line;
+  text-align: center;
+}
+
+.word-effect.word-with-meaning::first-line {
+  font-weight: bold;
+  margin-bottom: 5px;
+  display: block;
+}

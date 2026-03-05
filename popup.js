@@ -1,0 +1,379 @@
+// 扫描词库文件
+async function scanWordLibraries() {
+  const wordLibrarySelect = document.getElementById('wordLibrary');
+  wordLibrarySelect.innerHTML = '';
+  
+  // 词库文件列表
+  const libraryFiles = [];
+  
+  try {
+    // 使用fetch获取world目录下的文件列表
+    // 注意：这需要在manifest.json中配置web_accessible_resources
+    const worldDir = chrome.runtime.getURL('world/');
+    
+    // 由于Chrome扩展的安全限制，我们需要使用一种变通方法
+    // 这里我们使用fetch尝试获取可能的JSON文件
+    // 更可靠的方法是在构建时生成文件列表，或者使用Web Accessible Resources
+    
+    // 尝试获取world目录下的所有JSON文件
+    // 这里我们使用一种简单的方法，尝试获取常见的文件名格式
+    // 更好的方法是使用chrome.runtime.getPackageDirectoryEntry API
+    
+    // 使用chrome.runtime.getPackageDirectoryEntry获取扩展目录
+    const rootEntry = await new Promise((resolve, reject) => {
+      chrome.runtime.getPackageDirectoryEntry(resolve);
+    });
+    
+    // 获取world目录
+    const worldEntry = await new Promise((resolve, reject) => {
+      rootEntry.getDirectory('world', { create: false }, resolve, reject);
+    });
+    
+    // 读取world目录下的所有文件
+    const files = await new Promise((resolve, reject) => {
+      const reader = worldEntry.createReader();
+      const entries = [];
+      
+      function readEntries() {
+        reader.readEntries((results) => {
+          if (results.length) {
+            entries.push(...results);
+            readEntries();
+          } else {
+            resolve(entries);
+          }
+        }, reject);
+      }
+      
+      readEntries();
+    });
+    
+    // 筛选出JSON文件
+    for (const entry of files) {
+      if (entry.isFile && entry.name.endsWith('.json')) {
+        libraryFiles.push(entry.name);
+      }
+    }
+  } catch (error) {
+    console.error('扫描词库文件失败:', error);
+    // 如果无法获取文件列表，使用CET4-顺序.json
+    libraryFiles.push('CET4-顺序.json');
+  }
+  
+  // 从文件名生成词库名称并添加到下拉菜单
+  libraryFiles.forEach(file => {
+    // 移除 .json 后缀
+    const nameWithoutExt = file.replace('.json', '');
+    // 生成友好的词库名称
+    let friendlyName;
+    if (nameWithoutExt === 'default') {
+      friendlyName = '默认词库';
+    } else {
+      // 尝试美化文件名，例如将"CET4-顺序"转换为"CET4 顺序"
+      friendlyName = nameWithoutExt.replace(/-/g, ' ');
+    }
+    
+    const option = document.createElement('option');
+    option.value = file;
+    option.textContent = friendlyName;
+    wordLibrarySelect.appendChild(option);
+  });
+  
+  // 如果没有词库文件，添加默认选项
+  if (wordLibrarySelect.options.length === 0) {
+    const option = document.createElement('option');
+    option.value = 'default.json';
+    option.textContent = '默认词库';
+    wordLibrarySelect.appendChild(option);
+  }
+}
+
+// 加载保存的设置
+async function loadSettings() {
+  const data = await new Promise((resolve) => {
+    chrome.storage.sync.get(['showBoth', 'playAudio', 'fadeTime', 'wordLibrary', 'audioApi'], resolve);
+  });
+  
+  document.getElementById('showBoth').checked = data.showBoth || false;
+  document.getElementById('playAudio').checked = data.playAudio !== false; // 默认开启
+  document.getElementById('fadeTime').value = data.fadeTime || 2; // 默认2秒
+  // 设置音频API，默认使用有道词典API
+  document.getElementById('audioApi').value = data.audioApi || 'https://dict.youdao.com/dictvoice?type=0&audio=';
+  
+  // 先扫描词库
+  await scanWordLibraries();
+  
+  const wordLibrarySelect = document.getElementById('wordLibrary');
+  // 如果没有保存的词库选择，使用第一个可用的词库
+  if (!data.wordLibrary && wordLibrarySelect.options.length > 0) {
+    wordLibrarySelect.value = wordLibrarySelect.options[0].value;
+  } else {
+    // 设置选中的词库
+    document.getElementById('wordLibrary').value = data.wordLibrary || (wordLibrarySelect.options.length > 0 ? wordLibrarySelect.options[0].value : 'CET4-顺序.json');
+  }
+  
+  // 监听词库变化事件，当词库改变时重新加载音频
+  wordLibrarySelect.addEventListener('change', function() {
+    // 保存设置
+    saveSettings();
+    // 向content.js发送消息，重新加载词库和音频
+    chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'reloadLibrary' }, function(response) {
+          if (response && response.success) {
+            console.log('词库已重新加载');
+          }
+        });
+      }
+    });
+  });
+  
+  // 监听音频API变化事件
+  document.getElementById('audioApi').addEventListener('change', function() {
+    // 保存设置
+    saveSettings();
+    // 向content.js发送消息，重新加载音频缓存
+    chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'reloadLibrary' }, function(response) {
+          if (response && response.success) {
+            console.log('音频API已更新');
+          }
+        });
+      }
+    });
+  });
+}
+
+// 保存设置
+function saveSettings() {
+  const showBoth = document.getElementById('showBoth').checked;
+  const playAudio = document.getElementById('playAudio').checked;
+  const fadeTime = parseInt(document.getElementById('fadeTime').value) || 2;
+  const wordLibrary = document.getElementById('wordLibrary').value;
+  const audioApi = document.getElementById('audioApi').value || 'https://dict.youdao.com/dictvoice?type=0&audio=';
+  
+  chrome.storage.sync.set({ showBoth: showBoth, playAudio: playAudio, fadeTime: fadeTime, wordLibrary: wordLibrary, audioApi: audioApi }, function() {
+    // 显示保存成功消息
+    const statusMessage = document.getElementById('statusMessage');
+    statusMessage.style.display = 'block';
+    setTimeout(function() {
+      statusMessage.style.display = 'none';
+    }, 2000);
+  });
+}
+
+// 获取缓存大小
+function getCacheSize() {
+  chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+    if (tabs[0]) {
+      chrome.tabs.sendMessage(tabs[0].id, { action: 'getCacheSize' }, function(response) {
+        if (response && response.size !== undefined) {
+          const cacheInfo = document.getElementById('cacheInfo');
+          cacheInfo.textContent = `当前缓存: ${response.size} 个音频`;
+        }
+      });
+    }
+  });
+}
+
+// 初始化
+document.addEventListener('DOMContentLoaded', async function() {
+  await loadSettings();
+  // 只在点击保存按钮时保存设置
+  document.getElementById('saveButton').addEventListener('click', saveSettings);
+  
+  // 点击删除缓存按钮
+  document.getElementById('clearCacheButton').addEventListener('click', function() {
+    // 向content.js发送消息，清除缓存
+    chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'clearCache' }, function(response) {
+          if (response && response.success) {
+            // 显示成功消息
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.textContent = '缓存已删除';
+            statusMessage.style.display = 'block';
+            setTimeout(function() {
+              statusMessage.style.display = 'none';
+            }, 2000);
+            // 更新缓存大小显示
+            getCacheSize();
+          }
+        });
+      }
+    });
+    
+    // 获取当前词库名称
+    const wordLibrary = document.getElementById('wordLibrary').value;
+    const libraryName = wordLibrary.replace('.json', '');
+    const storagePositionKey = `wordPosition_${libraryName}`;
+    const storageHistoryKey = `wordHistory_${libraryName}`;
+    
+    // 删除Chrome存储中的所有记录
+    chrome.storage.local.remove([storagePositionKey, storageHistoryKey], function() {
+      console.log('删除Chrome存储中的所有记录成功');
+    });
+  });
+  
+  // 点击重置词库按钮
+  document.getElementById('resetLibraryButton').addEventListener('click', function() {
+    // 向content.js发送消息，重置词库
+    chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'resetLibrary' }, function(response) {
+          if (response && response.success) {
+            // 显示成功消息
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.textContent = '词库已重置';
+            statusMessage.style.display = 'block';
+            setTimeout(function() {
+              statusMessage.style.display = 'none';
+            }, 2000);
+            // 更新缓存大小显示
+            getCacheSize();
+          }
+        });
+      }
+    });
+  });
+  
+  // 初始化时获取缓存大小
+  getCacheSize();
+  
+  // 监控面板按钮点击事件
+  document.getElementById('monitoringPanelButton').addEventListener('click', function() {
+    document.getElementById('monitoringPanel').style.display = 'block';
+    loadMonitoringData();
+  });
+  
+  // 关闭监控面板按钮点击事件
+  document.getElementById('closeMonitoringPanel').addEventListener('click', function() {
+    document.getElementById('monitoringPanel').style.display = 'none';
+  });
+  
+  // 监听存储变化，实时更新缓存大小
+  chrome.storage.local.onChanged.addListener(function(changes, namespace) {
+    if (changes.cacheSize) {
+      const cacheInfo = document.getElementById('cacheInfo');
+      cacheInfo.textContent = `当前缓存: ${changes.cacheSize.newValue} 个音频`;
+    }
+  });
+});
+
+// 加载监控数据
+function loadMonitoringData() {
+  // 获取当前词库名称
+  const wordLibrary = document.getElementById('wordLibrary').value;
+  const libraryName = wordLibrary.replace('.json', '');
+  const storageKey = `wordHistory_${libraryName}`;
+  
+  // 从Chrome存储中获取历史记录
+  chrome.storage.local.get([storageKey], function(result) {
+    const history = result[storageKey] || [];
+    
+    if (history.length === 0) {
+      document.getElementById('monitoringContent').innerHTML = '<p style="text-align: center; color: #666;">暂无历史记录</p>';
+      return;
+    }
+    
+    // 按日期分类历史记录
+    const historyByDate = {};
+    history.forEach(record => {
+      // 验证日期格式是否有效
+      const dateObj = new Date(record.date);
+      let date;
+      if (isNaN(dateObj.getTime())) {
+        // 无效日期，使用当前日期作为默认值
+        date = new Date().toLocaleDateString();
+      } else {
+        date = dateObj.toLocaleDateString();
+      }
+      if (!historyByDate[date]) {
+        historyByDate[date] = [];
+      }
+      historyByDate[date].push(record);
+    });
+    
+    // 按日期降序排序
+    const sortedDates = Object.keys(historyByDate).sort((a, b) => {
+      // 转换为日期对象进行比较，确保正确排序
+      return new Date(b) - new Date(a);
+    });
+    
+    // 生成监控面板内容
+    let content = '';
+    sortedDates.forEach(date => {
+      const records = historyByDate[date];
+      content += `
+        <div class="date-group">
+          <div class="date-header" style="cursor: pointer; padding: 8px; background-color: #e3f2fd; border-radius: 4px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: bold;">${date}</span>
+            <span class="toggle-icon" style="font-size: 12px;">▼</span>
+          </div>
+          <div class="date-content" style="padding-left: 15px; display: block;">
+            ${records.map(record => {
+              // 处理不同结构的记录
+              let type = '无词性';
+              let meaning = '无释义';
+              if (record.translations && record.translations.length > 0) {
+                // 完整的单词对象，从translations中获取
+                type = record.translations[0].type || '无词性';
+                meaning = record.translations[0].translation || '无释义';
+              } else {
+                // 简化的记录，直接使用type和meaning属性
+                type = record.type || '无词性';
+                meaning = record.meaning || '无释义';
+              }
+              return `
+                <div style="margin-bottom: 5px; padding: 5px; background-color: #fff; border-radius: 3px; border-left: 3px solid #2196F3; cursor: pointer; transition: background-color 0.2s;">
+                  <div><strong style="color: #2196F3;">${record.word}</strong> (${type})</div>
+                  <div style="font-size: 12px; color: #666;">${meaning}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    });
+    
+    document.getElementById('monitoringContent').innerHTML = content;
+    
+    // 添加日期行点击事件，实现收起/展开功能
+    document.querySelectorAll('.date-header').forEach(header => {
+      header.addEventListener('click', function() {
+        const content = this.nextElementSibling;
+        const icon = this.querySelector('.toggle-icon');
+        if (content.style.display === 'none') {
+          content.style.display = 'block';
+          icon.textContent = '▼';
+        } else {
+          content.style.display = 'none';
+          icon.textContent = '▶';
+        }
+      });
+    });
+    
+    // 添加单词点击事件，播放音频
+    document.querySelectorAll('.date-content > div').forEach((wordElement, index) => {
+      wordElement.addEventListener('click', function() {
+        // 更改背景颜色以提供反馈
+        this.style.backgroundColor = '#f0f8ff';
+        setTimeout(() => {
+          this.style.backgroundColor = '#fff';
+        }, 200);
+        
+        // 获取单词
+        const wordText = this.querySelector('strong').textContent;
+        console.log('播放单词音频:', wordText);
+        
+        // 播放音频
+        const audioUrl = 'https://dict.youdao.com/dictvoice?type=0&audio=' + encodeURIComponent(wordText);
+        const audio = new Audio(audioUrl);
+        audio.play().catch(error => {
+          console.error('播放音频失败:', error);
+        });
+      });
+    });
+  });
+}
