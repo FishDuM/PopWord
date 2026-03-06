@@ -4,7 +4,7 @@ let clickCount = 0;
 let showBoth = false;
 let playAudioEnabled = true;
 let fadeTime = 2; // 默认2秒
-let wordLibrary = 'CET4-顺序.json'; // 默认词库
+let wordLibrary = 'CET4.json'; // 默认词库
 let currentWordIndex = 0; // 当前单词索引，用于顺序获取单词
 let audioApi = 'https://dict.youdao.com/dictvoice?type=0&audio='; // 默认音频API
 let wordHistory = []; // 单词历史记录
