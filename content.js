@@ -9,6 +9,8 @@ let currentWordIndex = 0; // 当前单词索引，用于顺序获取单词
 let audioApi = 'https://dict.youdao.com/dictvoice?type=0&audio='; // 默认音频API
 let wordHistory = []; // 单词历史记录
 let historyIndex = -1; // 当前历史记录索引
+let nextKey = ''; // 下一个单词按键
+let prevKey = ''; // 上一个单词按键
 
 // 加载单词库
 async function loadWords() {
@@ -130,12 +132,14 @@ function savePosition() {
 // 加载设置
 function loadSettings() {
   return new Promise((resolve) => {
-    chrome.storage.sync.get(['showBoth', 'playAudio', 'fadeTime', 'wordLibrary', 'audioApi'], function(data) {
+    chrome.storage.sync.get(['showBoth', 'playAudio', 'fadeTime', 'wordLibrary', 'audioApi', 'nextKey', 'prevKey'], function(data) {
       showBoth = data.showBoth || false;
       playAudioEnabled = data.playAudio !== false; // 默认开启
       fadeTime = data.fadeTime || 2; // 默认2秒
       wordLibrary = data.wordLibrary || 'CET4-顺序.json'; // 默认词库
       audioApi = data.audioApi || 'https://dict.youdao.com/dictvoice?type=0&audio='; // 默认音频API
+      nextKey = data.nextKey || ''; // 下一个单词按键
+      prevKey = data.prevKey || ''; // 上一个单词按键
       resolve();
     });
   });
@@ -829,6 +833,33 @@ function setupClickListener() {
     console.log('触发showWordEffect函数（右键，上一个单词）');
     showWordEffect(e.clientX, e.clientY, 'prev');
   }, true); // 使用捕获阶段
+  
+  // 添加键盘事件监听
+  document.addEventListener('keydown', (e) => {
+    // 避免在输入框中触发
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      return;
+    }
+    
+    // 检查是否按下了自定义的下一个单词按键
+    if (nextKey && e.key === nextKey) {
+      console.log('按下了下一个单词按键:', nextKey);
+      // 获取鼠标当前位置作为显示位置
+      const x = window.innerWidth / 2;
+      const y = window.innerHeight / 2;
+      showWordEffect(x, y, 'next');
+    }
+    
+    // 检查是否按下了自定义的上一个单词按键
+    if (prevKey && e.key === prevKey) {
+      console.log('按下了上一个单词按键:', prevKey);
+      // 获取鼠标当前位置作为显示位置
+      const x = window.innerWidth / 2;
+      const y = window.innerHeight / 2;
+      showWordEffect(x, y, 'prev');
+    }
+  }, true); // 使用捕获阶段
+  
   console.log('点击事件监听器设置完成（使用捕获阶段）');
 }
 
@@ -886,6 +917,14 @@ async function init() {
       cachedWordIndices.clear();
       usedWordCount = 0;
       initAudioCache();
+    }
+    if (changes.nextKey) {
+      nextKey = changes.nextKey.newValue || '';
+      console.log('nextKey更新为:', nextKey);
+    }
+    if (changes.prevKey) {
+      prevKey = changes.prevKey.newValue || '';
+      console.log('prevKey更新为:', prevKey);
     }
   });
   

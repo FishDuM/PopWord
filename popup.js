@@ -82,7 +82,7 @@ async function scanWordLibraries() {
 // 加载保存的设置
 async function loadSettings() {
   const data = await new Promise((resolve) => {
-    chrome.storage.sync.get(['showBoth', 'playAudio', 'fadeTime', 'wordLibrary', 'audioApi'], resolve);
+    chrome.storage.sync.get(['showBoth', 'playAudio', 'fadeTime', 'wordLibrary', 'audioApi', 'nextKey', 'prevKey'], resolve);
   });
   
   document.getElementById('showBoth').checked = data.showBoth || false;
@@ -90,6 +90,9 @@ async function loadSettings() {
   document.getElementById('fadeTime').value = data.fadeTime || 2; // 默认2秒
   // 设置音频API，默认使用有道词典API
   document.getElementById('audioApi').value = data.audioApi || 'https://dict.youdao.com/dictvoice?type=0&audio=';
+  // 设置按键，默认空
+  document.getElementById('nextKey').value = data.nextKey || '';
+  document.getElementById('prevKey').value = data.prevKey || '';
   
   // 先扫描词库
   await scanWordLibraries();
@@ -153,8 +156,10 @@ function saveSettings() {
   const fadeTime = parseInt(document.getElementById('fadeTime').value) || 2;
   const wordLibrary = document.getElementById('wordLibrary').value;
   const audioApi = document.getElementById('audioApi').value || 'https://dict.youdao.com/dictvoice?type=0&audio=';
+  const nextKey = document.getElementById('nextKey').value || '';
+  const prevKey = document.getElementById('prevKey').value || '';
   
-  chrome.storage.sync.set({ showBoth: showBoth, playAudio: playAudio, fadeTime: fadeTime, wordLibrary: wordLibrary, audioApi: audioApi }, function() {
+  chrome.storage.sync.set({ showBoth: showBoth, playAudio: playAudio, fadeTime: fadeTime, wordLibrary: wordLibrary, audioApi: audioApi, nextKey: nextKey, prevKey: prevKey }, function() {
     // 显示保存成功消息
     const statusMessage = document.getElementById('statusMessage');
     statusMessage.style.display = 'block';
