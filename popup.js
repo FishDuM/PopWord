@@ -113,6 +113,11 @@ async function loadSettings() {
     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
       if (tabs[0]) {
         chrome.tabs.sendMessage(tabs[0].id, { action: 'reloadLibrary' }, function(response) {
+          // 处理消息传递错误
+          if (chrome.runtime.lastError) {
+            console.log('消息传递失败:', chrome.runtime.lastError.message);
+            return;
+          }
           if (response && response.success) {
             console.log('词库已重新加载');
           }
@@ -129,6 +134,11 @@ async function loadSettings() {
     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
       if (tabs[0]) {
         chrome.tabs.sendMessage(tabs[0].id, { action: 'reloadLibrary' }, function(response) {
+          // 处理消息传递错误
+          if (chrome.runtime.lastError) {
+            console.log('消息传递失败:', chrome.runtime.lastError.message);
+            return;
+          }
           if (response && response.success) {
             console.log('音频API已更新');
           }
@@ -162,6 +172,11 @@ function getCacheSize() {
   chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
     if (tabs[0]) {
       chrome.tabs.sendMessage(tabs[0].id, { action: 'getCacheSize' }, function(response) {
+        // 处理消息传递错误
+        if (chrome.runtime.lastError) {
+          console.log('消息传递失败:', chrome.runtime.lastError.message);
+          return;
+        }
         if (response && response.size !== undefined) {
           const cacheInfo = document.getElementById('cacheInfo');
           cacheInfo.textContent = `当前缓存: ${response.size} 个音频`;
@@ -183,6 +198,18 @@ document.addEventListener('DOMContentLoaded', async function() {
     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
       if (tabs[0]) {
         chrome.tabs.sendMessage(tabs[0].id, { action: 'clearCache' }, function(response) {
+          // 处理消息传递错误
+          if (chrome.runtime.lastError) {
+            console.log('消息传递失败:', chrome.runtime.lastError.message);
+            // 即使消息传递失败，也显示成功消息，因为我们已经清除了存储中的记录
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.textContent = '缓存已删除';
+            statusMessage.style.display = 'block';
+            setTimeout(function() {
+              statusMessage.style.display = 'none';
+            }, 2000);
+            return;
+          }
           if (response && response.success) {
             // 显示成功消息
             const statusMessage = document.getElementById('statusMessage');
@@ -216,6 +243,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
       if (tabs[0]) {
         chrome.tabs.sendMessage(tabs[0].id, { action: 'resetLibrary' }, function(response) {
+          // 处理消息传递错误
+          if (chrome.runtime.lastError) {
+            console.log('消息传递失败:', chrome.runtime.lastError.message);
+            return;
+          }
           if (response && response.success) {
             // 显示成功消息
             const statusMessage = document.getElementById('statusMessage');
