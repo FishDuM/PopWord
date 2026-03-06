@@ -138,8 +138,8 @@ function loadSettings() {
       fadeTime = data.fadeTime || 2; // 默认2秒
       wordLibrary = data.wordLibrary || 'CET4-顺序.json'; // 默认词库
       audioApi = data.audioApi || 'https://dict.youdao.com/dictvoice?type=0&audio='; // 默认音频API
-      nextKey = data.nextKey || ''; // 下一个单词按键
-      prevKey = data.prevKey || ''; // 上一个单词按键
+      nextKey = data.nextKey || '鼠标左键'; // 下一个单词按键，默认鼠标左键
+      prevKey = data.prevKey || '鼠标右键'; // 上一个单词按键，默认鼠标右键
       resolve();
     });
   });
@@ -794,6 +794,11 @@ function setupClickListener() {
   console.log('设置点击事件监听器');
   // 使用捕获阶段的事件监听，确保在B站首页也能捕获到点击事件
   document.addEventListener('click', (e) => {
+    // 只有当nextKey设置为"鼠标左键"时，才启用鼠标左键触发
+    if (nextKey !== '鼠标左键') {
+      return;
+    }
+    
     console.log('点击事件捕获，目标:', e.target.tagName);
     console.log('目标类名:', e.target.className);
     console.log('目标ID:', e.target.id);
@@ -815,6 +820,11 @@ function setupClickListener() {
   
   // 添加右键点击事件监听
   document.addEventListener('contextmenu', (e) => {
+    // 只有当prevKey设置为"鼠标右键"时，才启用鼠标右键触发
+    if (prevKey !== '鼠标右键') {
+      return;
+    }
+    
     console.log('右键点击事件捕获，目标:', e.target.tagName);
     // 避免在输入框、按钮等元素上触发
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') {

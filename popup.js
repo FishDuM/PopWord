@@ -90,9 +90,9 @@ async function loadSettings() {
   document.getElementById('fadeTime').value = data.fadeTime || 2; // 默认2秒
   // 设置音频API，默认使用有道词典API
   document.getElementById('audioApi').value = data.audioApi || 'https://dict.youdao.com/dictvoice?type=0&audio=';
-  // 设置按键，默认空
-  document.getElementById('nextKey').value = data.nextKey || '';
-  document.getElementById('prevKey').value = data.prevKey || '';
+  // 设置按键，默认鼠标左键和鼠标右键
+  document.getElementById('nextKey').value = data.nextKey || '鼠标左键';
+  document.getElementById('prevKey').value = data.prevKey || '鼠标右键';
   
   // 先扫描词库
   await scanWordLibraries();
