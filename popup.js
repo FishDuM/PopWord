@@ -7,31 +7,22 @@ async function scanWordLibraries() {
   const libraryFiles = [];
   
   try {
-    // 使用fetch获取world目录下的文件列表
-    // 注意：这需要在manifest.json中配置web_accessible_resources
-    const worldDir = chrome.runtime.getURL('world/');
-    
-    // 由于Chrome扩展的安全限制，我们需要使用一种变通方法
-    // 这里我们使用fetch尝试获取可能的JSON文件
-    // 更可靠的方法是在构建时生成文件列表，或者使用Web Accessible Resources
-    
-    // 尝试获取world目录下的所有JSON文件
-    // 这里我们使用一种简单的方法，尝试获取常见的文件名格式
-    // 更好的方法是使用chrome.runtime.getPackageDirectoryEntry API
+    // 获取用户设置的词库路径，默认使用word
+    const wordPath = document.getElementById('wordPath').value || 'word';
     
     // 使用chrome.runtime.getPackageDirectoryEntry获取扩展目录
     const rootEntry = await new Promise((resolve, reject) => {
       chrome.runtime.getPackageDirectoryEntry(resolve);
     });
     
-    // 获取world目录
-    const worldEntry = await new Promise((resolve, reject) => {
-      rootEntry.getDirectory('world', { create: false }, resolve, reject);
+    // 获取词库目录
+    const wordDir = await new Promise((resolve, reject) => {
+      rootEntry.getDirectory(wordPath, { create: false }, resolve, reject);
     });
     
-    // 读取world目录下的所有文件
+    // 读取词库目录下的所有文件
     const files = await new Promise((resolve, reject) => {
-      const reader = worldEntry.createReader();
+      const reader = wordDir.createReader();
       const entries = [];
       
       function readEntries() {
@@ -91,7 +82,7 @@ async function scanWordLibraries() {
 // 加载保存的设置
 async function loadSettings() {
   const data = await new Promise((resolve) => {
-    chrome.storage.sync.get(['showBoth', 'playAudio', 'fadeTime', 'wordLibrary', 'audioApi'], resolve);
+    chrome.storage.sync.get(['showBoth', 'playAudio', 'fadeTime', 'wordLibrary', 'audioApi', 'wordPath'], resolve);
   });
   
   document.getElementById('showBoth').checked = data.showBoth || false;
@@ -99,6 +90,8 @@ async function loadSettings() {
   document.getElementById('fadeTime').value = data.fadeTime || 2; // 默认2秒
   // 设置音频API，默认使用有道词典API
   document.getElementById('audioApi').value = data.audioApi || 'https://dict.youdao.com/dictvoice?type=0&audio=';
+  // 设置词库路径，默认使用word路径
+  document.getElementById('wordPath').value = data.wordPath || 'word';
   
   // 先扫描词库
   await scanWordLibraries();
@@ -152,8 +145,9 @@ function saveSettings() {
   const fadeTime = parseInt(document.getElementById('fadeTime').value) || 2;
   const wordLibrary = document.getElementById('wordLibrary').value;
   const audioApi = document.getElementById('audioApi').value || 'https://dict.youdao.com/dictvoice?type=0&audio=';
+  const wordPath = document.getElementById('wordPath').value || 'word';
   
-  chrome.storage.sync.set({ showBoth: showBoth, playAudio: playAudio, fadeTime: fadeTime, wordLibrary: wordLibrary, audioApi: audioApi }, function() {
+  chrome.storage.sync.set({ showBoth: showBoth, playAudio: playAudio, fadeTime: fadeTime, wordLibrary: wordLibrary, audioApi: audioApi, wordPath: wordPath }, function() {
     // 显示保存成功消息
     const statusMessage = document.getElementById('statusMessage');
     statusMessage.style.display = 'block';

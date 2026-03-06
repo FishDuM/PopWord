@@ -13,7 +13,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["words.json", "world/*"],
+      "resources": ["words.json", "word/*", "world/*"],
       "matches": ["<all_urls>"]
     }
   ],
