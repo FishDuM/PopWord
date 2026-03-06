@@ -12,16 +12,37 @@ let historyIndex = -1; // 当前历史记录索引
 let nextKey = ''; // 下一个单词按键
 let prevKey = ''; // 上一个单词按键
 
-// 加载单词库
+// 开发时设为 true 可输出日志；关闭可减少卡顿
+const DEBUG = false;
+function dbg(...args) { if (DEBUG) console.log(...args); }
+
+// 防抖：合并频繁的 storage 写入，减轻卡顿
+let savePositionTimer = null;
+let saveWordMemoryQueue = [];
+let saveWordMemoryTimer = null;
+
+// Fisher–Yates 洗牌，原地打乱数组顺序
+function shuffle(array) {
+  const arr = Array.isArray(array) ? array : [];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// 加载单词库（加载后对词库随机打乱顺序）
 async function loadWords() {
   try {
     // 默认使用word文件夹作为词库路径
     const response = await fetch(chrome.runtime.getURL(`word/${wordLibrary}`));
     words = await response.json();
-    console.log('词库加载成功:', wordLibrary, '共', words.length, '个单词');
+    shuffle(words); // 随机顺序
+    console.log('词库加载成功:', wordLibrary, '共', words.length, '个单词（已随机顺序）');
     
-    // 加载历史记录，获取上次的遍历位置
+    // 加载历史记录；随机顺序下不从存储恢复遍历位置，从打乱后的第 0 个开始
     await loadHistory();
+    currentWordIndex = 0;
   } catch (error) {
     console.error('加载单词库失败:', error);
     // 尝试加载可用的词库文件
@@ -29,8 +50,10 @@ async function loadWords() {
       // 尝试加载CET4-顺序.json
       const response = await fetch(chrome.runtime.getURL('word/CET4-顺序.json'));
       words = await response.json();
+      shuffle(words);
+      currentWordIndex = 0;
       wordLibrary = 'CET4-顺序.json'; // 更新词库名称
-      console.log('加载CET4-顺序.json成功');
+      console.log('加载CET4-顺序.json成功（已随机顺序）');
       
       // 加载历史记录，获取上次的遍历位置
       await loadHistory();
@@ -44,6 +67,7 @@ async function loadWords() {
         {"word":"banana","translations":[{"translation":"香蕉","type":"n"}]},
         {"word":"cat","translations":[{"translation":"猫","type":"n"}]}
       ];
+      shuffle(words);
       currentWordIndex = 0;
       console.log('使用默认单词列表');
     }
@@ -108,6 +132,15 @@ async function loadHistory() {
   }
 }
 
+// 防抖保存遍历位置（约 500ms 内多次只写一次）
+function scheduleSavePosition() {
+  if (savePositionTimer) clearTimeout(savePositionTimer);
+  savePositionTimer = setTimeout(() => {
+    savePositionTimer = null;
+    savePosition();
+  }, 500);
+}
+
 // 保存遍历位置和历史记录
 function savePosition() {
   try {
@@ -153,10 +186,10 @@ function getRandomWord() {
   // 递增索引，循环使用
   currentWordIndex = (currentWordIndex + 1) % words.length;
   console.log('下一个索引:', currentWordIndex);
-  // 保存单词记忆记录
+  // 保存单词记忆记录（防抖，避免每次点击都写 storage）
   saveWordMemory(word);
-  // 保存遍历位置
-  savePosition();
+  // 保存遍历位置（防抖）
+  scheduleSavePosition();
   return word;
 }
 
@@ -185,25 +218,40 @@ function saveWordMemory(wordData) {
     
     console.log('准备保存记忆记录:', memoryRecord);
     
-    // 使用Chrome存储API来保存历史记录
-    const storageKey = `wordHistory_${libraryName}`;
-    chrome.storage.local.get([storageKey], (result) => {
-      const history = result[storageKey] || [];
-      history.push(memoryRecord);
-      
-      // 限制历史记录长度，只保留最近的1000条记录
-      if (history.length > 1000) {
-        history = history.slice(-1000);
-      }
-      
-      chrome.storage.local.set({ [storageKey]: history }, () => {
-        console.log('单词记忆记录保存成功');
-      });
-    });
+    // 入队后防抖批量写入，减少 storage 写入次数
+    saveWordMemoryQueue.push({ storageKey: `wordHistory_${libraryName}`, record: memoryRecord });
+    if (saveWordMemoryTimer) clearTimeout(saveWordMemoryTimer);
+    saveWordMemoryTimer = setTimeout(flushWordMemoryQueue, 800);
   } catch (error) {
     console.error('保存单词记忆记录时发生错误:', error);
   }
 }
+
+// 防抖批量写入记忆记录，减少卡顿
+function flushWordMemoryQueue() {
+  saveWordMemoryTimer = null;
+  if (saveWordMemoryQueue.length === 0) return;
+  const byKey = new Map();
+  for (const { storageKey, record } of saveWordMemoryQueue) {
+    if (!byKey.has(storageKey)) byKey.set(storageKey, []);
+    byKey.get(storageKey).push(record);
+  }
+  saveWordMemoryQueue = [];
+  chrome.storage.local.get(Array.from(byKey.keys()), (result) => {
+    const toSet = {};
+    for (const [storageKey, records] of byKey) {
+      const history = (result[storageKey] || []).concat(records);
+      toSet[storageKey] = history.length > 1000 ? history.slice(-1000) : history;
+    }
+    chrome.storage.local.set(toSet, () => { dbg('单词记忆记录批量保存成功'); });
+  });
+}
+
+// 页面卸载前务必落盘，避免丢失进度
+window.addEventListener('beforeunload', () => {
+  if (savePositionTimer) { clearTimeout(savePositionTimer); savePosition(); }
+  flushWordMemoryQueue();
+});
 
 // 显示单词或中文意思
 function showWordEffect(x, y, direction = 'next') {
@@ -782,65 +830,64 @@ function cacheMoreAudio() {
   // 计算需要缓存的数量
   const needToCache = Math.min(CACHE_THRESHOLD, CACHE_SIZE - cachedWordIndices.size);
   
-  // 异步缓存，避免阻塞主线程
+  // 错峰创建 Audio，避免一帧内大量创建导致卡顿
   setTimeout(() => {
-    // 随机选择单词进行缓存
     let cachedCount = 0;
-    while (cachedCount < needToCache && cachedWordIndices.size < words.length) {
+    const STAGGER_MS = 40;
+    const tryCacheOne = () => {
+      if (cachedCount >= needToCache || cachedWordIndices.size >= words.length) {
+        dbg(`已缓存${cachedWordIndices.size}/${CACHE_SIZE}个单词的音频`);
+        sendCacheUpdate();
+        return;
+      }
       const randomIndex = Math.floor(Math.random() * words.length);
       if (!cachedWordIndices.has(randomIndex)) {
         const wordData = words[randomIndex];
         if (wordData && wordData.word) {
-          // 使用用户指定的音频API
           const audioUrl = audioApi + encodeURIComponent(wordData.word);
-          // 预加载音频
           const audio = new Audio(audioUrl);
           audio.preload = 'auto';
-          const cacheKey = `audio_${wordData.word}`;
-          audioCache.set(cacheKey, audio);
+          audioCache.set(`audio_${wordData.word}`, audio);
           cachedWordIndices.add(randomIndex);
           cachedCount++;
-          console.log(`预缓存单词: ${wordData.word}`);
+          dbg(`预缓存单词: ${wordData.word}`);
         }
       }
-    }
-    
-    console.log(`已缓存${cachedWordIndices.size}/${CACHE_SIZE}个单词的音频`);
-    // 发送缓存更新消息
-    sendCacheUpdate();
-  }, 50); // 短暂延迟，确保清除缓存操作完成
+      setTimeout(tryCacheOne, STAGGER_MS);
+    };
+    tryCacheOne();
+  }, 50);
 }
 
-// 初始化缓存
+// 初始化缓存（错峰创建 Audio，避免一帧内大量创建导致卡顿）
 function initAudioCache() {
-  // 缓存初始的INITIAL_CACHE_COUNT个单词
-  console.log('开始初始化音频缓存');
-  
-  // 异步缓存，避免阻塞主线程
+  dbg('开始初始化音频缓存');
+  const STAGGER_MS = 40; // 每个音频间隔，避免主线程阻塞
   setTimeout(() => {
     let cachedCount = 0;
-    while (cachedCount < INITIAL_CACHE_COUNT && cachedWordIndices.size < words.length) {
+    const tryCacheOne = () => {
+      if (cachedCount >= INITIAL_CACHE_COUNT || cachedWordIndices.size >= words.length) {
+        dbg(`初始化完成，已缓存${cachedWordIndices.size}个单词的音频`);
+        sendCacheUpdate();
+        return;
+      }
       const randomIndex = Math.floor(Math.random() * words.length);
       if (!cachedWordIndices.has(randomIndex)) {
         const wordData = words[randomIndex];
         if (wordData && wordData.word) {
-          // 使用用户指定的音频API
           const audioUrl = audioApi + encodeURIComponent(wordData.word);
-          // 预加载音频
           const audio = new Audio(audioUrl);
           audio.preload = 'auto';
-          const cacheKey = `audio_${wordData.word}`;
-          audioCache.set(cacheKey, audio);
+          audioCache.set(`audio_${wordData.word}`, audio);
           cachedWordIndices.add(randomIndex);
           cachedCount++;
-          console.log(`预缓存单词: ${wordData.word}`);
+          dbg(`预缓存单词: ${wordData.word}`);
         }
       }
-    }
-    console.log(`初始化完成，已缓存${cachedWordIndices.size}个单词的音频`);
-    // 发送缓存更新消息
-    sendCacheUpdate();
-  }, 100); // 短暂延迟，确保页面已加载
+      setTimeout(tryCacheOne, STAGGER_MS);
+    };
+    tryCacheOne();
+  }, 100);
 }
 
 // 监听鼠标点击事件
@@ -964,8 +1011,10 @@ async function init() {
     }
     if (changes.wordLibrary) {
       wordLibrary = changes.wordLibrary.newValue;
-      console.log('wordLibrary更新为:', wordLibrary);
-      // 重新加载词库
+      dbg('wordLibrary更新为:', wordLibrary);
+      // 先落盘再重载，避免丢失进度
+      if (savePositionTimer) { clearTimeout(savePositionTimer); savePosition(); }
+      flushWordMemoryQueue();
       loadWords().then(() => {
         // 重新初始化音频缓存
         cachedWordIndices.clear();
@@ -1027,7 +1076,8 @@ async function init() {
       // 发送缓存更新消息
       sendCacheUpdate();
     } else if (request.action === 'reloadLibrary') {
-      // 重新加载词库
+      if (savePositionTimer) { clearTimeout(savePositionTimer); savePosition(); }
+      flushWordMemoryQueue();
       loadSettings().then(() => {
         return loadWords();
       }).then(() => {
