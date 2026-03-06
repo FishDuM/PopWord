@@ -402,11 +402,32 @@ function loadMonitoringData() {
         const wordText = this.querySelector('strong').textContent;
         console.log('播放单词音频:', wordText);
         
+        // 从设置中获取音频API
+        const audioApi = document.getElementById('audioApi').value || 'https://dict.youdao.com/dictvoice?type=0&audio=';
+        // 构建音频URL
+        const audioUrl = audioApi + encodeURIComponent(wordText);
+        console.log('构建的音频URL:', audioUrl);
+        
         // 播放音频
-        const audioUrl = 'https://dict.youdao.com/dictvoice?type=0&audio=' + encodeURIComponent(wordText);
         const audio = new Audio(audioUrl);
-        audio.play().catch(error => {
+        audio.play().then(() => {
+          console.log('音频播放成功:', wordText);
+        }).catch(error => {
           console.error('播放音频失败:', error);
+          // 失败时尝试使用Web Speech API
+          if ('speechSynthesis' in window) {
+            try {
+              const speech = new SpeechSynthesisUtterance(wordText);
+              speech.lang = 'en-US';
+              speech.rate = 1.0;
+              speech.pitch = 1.0;
+              speech.volume = 1.0;
+              window.speechSynthesis.speak(speech);
+              console.log('Web Speech API播放成功:', wordText);
+            } catch (error) {
+              console.error('Web Speech API播放失败:', error);
+            }
+          }
         });
       });
     });

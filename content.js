@@ -519,11 +519,19 @@ let usedWords = []; // 已使用的单词
 // 播放音频
 function playAudio(audioUrl, word) {
   console.log('尝试播放音频:', audioUrl, '单词:', word);
+  console.log('当前audioApi:', audioApi);
   
-  // 使用用户指定的音频API
-  if (word) {
-    const audioUrl = audioApi + encodeURIComponent(word);
+  // 如果提供了完整的音频URL，直接使用
+  if (audioUrl) {
+    console.log('使用提供的音频URL:', audioUrl);
     playAudioWithYoudao(audioUrl, word);
+  } else if (word) {
+    // 使用用户指定的音频API构建URL
+    const constructedUrl = audioApi + encodeURIComponent(word);
+    console.log('构建的音频URL:', constructedUrl);
+    playAudioWithYoudao(constructedUrl, word);
+  } else {
+    console.error('播放音频失败：单词为空');
   }
 }
 
@@ -557,7 +565,14 @@ function playAudioWithYoudao(audioUrl, word) {
 
 // 加载并播放音频
 function loadAndPlayYoudaoAudio(audioUrl, word) {
+  console.log('加载并播放音频:', audioUrl, '单词:', word);
   try {
+    // 验证音频URL
+    if (!audioUrl) {
+      console.error('音频URL为空');
+      return;
+    }
+    
     const audio = new Audio(audioUrl);
     audio.preload = 'auto';
     audio.volume = 1.0;
@@ -599,10 +614,16 @@ function loadAndPlayYoudaoAudio(audioUrl, word) {
         } catch (error) {
           console.error('Web Speech API播放失败:', error);
         }
+      } else {
+        console.log('浏览器不支持Web Speech API');
       }
     });
   } catch (error) {
     console.error('加载音频失败:', error);
+    // 尝试使用备用TTS方法
+    if (word) {
+      playAudioWithTTS(word);
+    }
   }
 }
 
@@ -612,6 +633,36 @@ function playAudioWithTTS(word) {
   
   // 首先尝试使用浏览器内置的Web Speech API
   if ('speechSynthesis' in window) {
+    try {
+      // 检查是否有可用的语音合成器
+      if (window.speechSynthesis.getVoices().length === 0) {
+        // 如果没有可用的语音，等待voiceschanged事件
+        window.speechSynthesis.onvoiceschanged = function() {
+          if (window.speechSynthesis.getVoices().length > 0) {
+            playSpeechSynthesis(word);
+          } else {
+            console.error('没有可用的语音合成器');
+            // 尝试使用百度TTS
+            tryBaiduTTS(word);
+          }
+        };
+      } else {
+        // 直接播放
+        playSpeechSynthesis(word);
+      }
+    } catch (error) {
+      console.error('Web Speech API播放失败:', error);
+      // 尝试使用百度TTS
+      tryBaiduTTS(word);
+    }
+  } else {
+    console.log('浏览器不支持Web Speech API');
+    // 尝试使用百度TTS
+    tryBaiduTTS(word);
+  }
+  
+  // 播放Web Speech API
+  function playSpeechSynthesis(word) {
     try {
       const speech = new SpeechSynthesisUtterance(word);
       speech.lang = 'en-US';
@@ -627,29 +678,32 @@ function playAudioWithTTS(word) {
       usedWordCount++;
       // 检查是否需要缓存更多音频
       checkAndCacheMoreAudio();
-      return;
     } catch (error) {
       console.error('Web Speech API播放失败:', error);
+      // 尝试使用百度TTS
+      tryBaiduTTS(word);
     }
   }
   
-  // 如果Web Speech API失败，使用国内可用的在线TTS服务
-  try {
-    // 使用百度TTS API（无需API key的公共接口）
-    const ttsUrl = `https://tts.baidu.com/text2audio?lan=en&ie=UTF-8&spd=5&text=${encodeURIComponent(word)}`;
-    const audio = new Audio(ttsUrl);
-    
-    audio.play().then(() => {
-      console.log('百度TTS播放成功:', word);
-      // 增加使用计数
-      usedWordCount++;
-      // 检查是否需要缓存更多音频
-      checkAndCacheMoreAudio();
-    }).catch(error => {
-      console.error('百度TTS播放失败:', error);
-    });
-  } catch (error) {
-    console.error('TTS播放失败:', error);
+  // 尝试使用百度TTS
+  function tryBaiduTTS(word) {
+    try {
+      // 使用百度TTS API（无需API key的公共接口）
+      const ttsUrl = `https://tts.baidu.com/text2audio?lan=en&ie=UTF-8&spd=5&text=${encodeURIComponent(word)}`;
+      const audio = new Audio(ttsUrl);
+      
+      audio.play().then(() => {
+        console.log('百度TTS播放成功:', word);
+        // 增加使用计数
+        usedWordCount++;
+        // 检查是否需要缓存更多音频
+        checkAndCacheMoreAudio();
+      }).catch(error => {
+        console.error('百度TTS播放失败:', error);
+      });
+    } catch (error) {
+      console.error('TTS播放失败:', error);
+    }
   }
 }
 
