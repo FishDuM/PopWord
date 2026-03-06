@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   
   // 点击删除缓存按钮
   document.getElementById('clearCacheButton').addEventListener('click', function() {
-    // 向content.js发送消息，清除缓存
+    // 向content.js发送消息，清除缓存并重置词库
     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
       if (tabs[0]) {
         chrome.tabs.sendMessage(tabs[0].id, { action: 'clearCache' }, function(response) {
@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.log('消息传递失败:', chrome.runtime.lastError.message);
             // 即使消息传递失败，也显示成功消息，因为我们已经清除了存储中的记录
             const statusMessage = document.getElementById('statusMessage');
-            statusMessage.textContent = '缓存已删除';
+            statusMessage.textContent = '缓存已删除，词库已重置';
             statusMessage.style.display = 'block';
             setTimeout(function() {
               statusMessage.style.display = 'none';
@@ -215,13 +215,20 @@ document.addEventListener('DOMContentLoaded', async function() {
           if (response && response.success) {
             // 显示成功消息
             const statusMessage = document.getElementById('statusMessage');
-            statusMessage.textContent = '缓存已删除';
+            statusMessage.textContent = '缓存已删除，词库已重置';
             statusMessage.style.display = 'block';
             setTimeout(function() {
               statusMessage.style.display = 'none';
             }, 2000);
             // 更新缓存大小显示
             getCacheSize();
+          }
+        });
+        
+        // 发送重置词库的消息
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'resetLibrary' }, function(response) {
+          if (chrome.runtime.lastError) {
+            console.log('重置词库消息传递失败:', chrome.runtime.lastError.message);
           }
         });
       }

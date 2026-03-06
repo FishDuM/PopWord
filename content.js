@@ -947,7 +947,10 @@ async function init() {
       audioCache.clear();
       cachedWordIndices.clear();
       usedWordCount = 0;
-      console.log('缓存已清除');
+      // 清空历史记录
+      wordHistory = [];
+      historyIndex = -1;
+      console.log('缓存已清除，历史记录已清空');
       sendResponse({ success: true });
       // 发送缓存更新消息
       sendCacheUpdate();
