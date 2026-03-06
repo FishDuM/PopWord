@@ -82,8 +82,11 @@ async function scanWordLibraries() {
 // 加载保存的设置
 async function loadSettings() {
   const data = await new Promise((resolve) => {
-    chrome.storage.sync.get(['showBoth', 'playAudio', 'fadeTime', 'wordLibrary', 'audioApi', 'nextKey', 'prevKey'], resolve);
+    chrome.storage.sync.get(['showBoth', 'playAudio', 'fadeTime', 'wordLibrary', 'audioApi', 'nextKey', 'prevKey', 'popwordEnabled'], resolve);
   });
+  
+  const enabled = data.popwordEnabled !== false; // 默认开启
+  updateToggleEnabledButton(enabled);
   
   document.getElementById('showBoth').checked = data.showBoth || false;
   document.getElementById('playAudio').checked = data.playAudio !== false; // 默认开启
@@ -149,6 +152,19 @@ async function loadSettings() {
   });
 }
 
+// 更新「关闭弹词」按钮文字与样式
+function updateToggleEnabledButton(enabled) {
+  const btn = document.getElementById('toggleEnabledButton');
+  if (!btn) return;
+  if (enabled) {
+    btn.textContent = '关闭弹词';
+    btn.style.backgroundColor = '#607D8B';
+  } else {
+    btn.textContent = '开启弹词';
+    btn.style.backgroundColor = '#4CAF50';
+  }
+}
+
 // 保存设置
 function saveSettings() {
   const showBoth = document.getElementById('showBoth').checked;
@@ -159,13 +175,16 @@ function saveSettings() {
   const nextKey = document.getElementById('nextKey').value || '';
   const prevKey = document.getElementById('prevKey').value || '';
   
-  chrome.storage.sync.set({ showBoth: showBoth, playAudio: playAudio, fadeTime: fadeTime, wordLibrary: wordLibrary, audioApi: audioApi, nextKey: nextKey, prevKey: prevKey }, function() {
+  chrome.storage.sync.get(['popwordEnabled'], (prev) => {
+    const popwordEnabled = prev.popwordEnabled !== false;
+    chrome.storage.sync.set({ showBoth: showBoth, playAudio: playAudio, fadeTime: fadeTime, wordLibrary: wordLibrary, audioApi: audioApi, nextKey: nextKey, prevKey: prevKey, popwordEnabled: popwordEnabled }, function() {
     // 显示保存成功消息
     const statusMessage = document.getElementById('statusMessage');
     statusMessage.style.display = 'block';
     setTimeout(function() {
       statusMessage.style.display = 'none';
     }, 2000);
+  });
   });
 }
 
@@ -193,7 +212,27 @@ document.addEventListener('DOMContentLoaded', async function() {
   await loadSettings();
   // 只在点击保存按钮时保存设置
   document.getElementById('saveButton').addEventListener('click', saveSettings);
-  
+
+  // 关闭/开启弹词按钮
+  document.getElementById('toggleEnabledButton').addEventListener('click', function() {
+    chrome.storage.sync.get(['popwordEnabled'], function(data) {
+      const enabled = data.popwordEnabled === false ? true : false; // 切换
+      chrome.storage.sync.set({ popwordEnabled: enabled }, function() {
+        updateToggleEnabledButton(enabled);
+        const statusMessage = document.getElementById('statusMessage');
+        statusMessage.textContent = enabled ? '弹词已开启' : '弹词已关闭';
+        statusMessage.style.display = 'block';
+        statusMessage.style.color = enabled ? '#4CAF50' : '#666';
+        setTimeout(function() { statusMessage.style.display = 'none'; }, 1500);
+        chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+          if (tabs[0]) {
+            chrome.tabs.sendMessage(tabs[0].id, { action: 'setEnabled', enabled: enabled });
+          }
+        });
+      });
+    });
+  });
+
   // 点击删除缓存按钮
   document.getElementById('clearCacheButton').addEventListener('click', function() {
     // 向content.js发送消息，清除缓存并重置词库
