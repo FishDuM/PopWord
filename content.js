@@ -11,6 +11,7 @@ let wordHistory = []; // 单词历史记录
 let historyIndex = -1; // 当前历史记录索引
 let nextKey = ''; // 下一个单词按键
 let prevKey = ''; // 上一个单词按键
+let popwordEnabled = true; // 弹词功能是否开启（功能菜单中可关闭）
 
 // 开发时设为 true 可输出日志；关闭可减少卡顿
 const DEBUG = false;
@@ -165,7 +166,7 @@ function savePosition() {
 // 加载设置
 function loadSettings() {
   return new Promise((resolve) => {
-    chrome.storage.sync.get(['showBoth', 'playAudio', 'fadeTime', 'wordLibrary', 'audioApi', 'nextKey', 'prevKey'], function(data) {
+    chrome.storage.sync.get(['showBoth', 'playAudio', 'fadeTime', 'wordLibrary', 'audioApi', 'nextKey', 'prevKey', 'popwordEnabled'], function(data) {
       showBoth = data.showBoth || false;
       playAudioEnabled = data.playAudio !== false; // 默认开启
       fadeTime = data.fadeTime || 2; // 默认2秒
@@ -173,6 +174,7 @@ function loadSettings() {
       audioApi = data.audioApi || 'https://dict.youdao.com/dictvoice?type=0&audio='; // 默认音频API
       nextKey = data.nextKey || '鼠标左键'; // 下一个单词按键，默认鼠标左键
       prevKey = data.prevKey || '鼠标右键'; // 上一个单词按键，默认鼠标右键
+      popwordEnabled = data.popwordEnabled !== false; // 默认开启弹词
       resolve();
     });
   });
@@ -895,6 +897,7 @@ function setupClickListener() {
   console.log('设置点击事件监听器');
   // 使用捕获阶段的事件监听，确保在B站首页也能捕获到点击事件
   document.addEventListener('click', (e) => {
+    if (!popwordEnabled) return;
     // 只有当nextKey设置为"鼠标左键"时，才启用鼠标左键触发
     if (nextKey !== '鼠标左键') {
       return;
@@ -921,6 +924,7 @@ function setupClickListener() {
   
   // 添加右键点击事件监听
   document.addEventListener('contextmenu', (e) => {
+    if (!popwordEnabled) return;
     // 只有当prevKey设置为"鼠标右键"时，才启用鼠标右键触发
     if (prevKey !== '鼠标右键') {
       return;
@@ -947,6 +951,7 @@ function setupClickListener() {
   
   // 添加键盘事件监听
   document.addEventListener('keydown', (e) => {
+    if (!popwordEnabled) return;
     // 避免在输入框中触发
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
       return;
@@ -1039,12 +1044,21 @@ async function init() {
       prevKey = changes.prevKey.newValue || '';
       console.log('prevKey更新为:', prevKey);
     }
+    if (changes.popwordEnabled !== undefined) {
+      popwordEnabled = changes.popwordEnabled.newValue !== false;
+      dbg('popwordEnabled更新为:', popwordEnabled);
+    }
   });
   
   // 监听来自popup的消息
   console.log('设置消息监听器');
   chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     console.log('收到消息:', request);
+    if (request.action === 'setEnabled') {
+      popwordEnabled = request.enabled === true;
+      sendResponse({ success: true });
+      return;
+    }
     if (request.action === 'clearCache') {
       // 清除缓存
       audioCache.clear();
