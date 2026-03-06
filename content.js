@@ -5,7 +5,6 @@ let showBoth = false;
 let playAudioEnabled = true;
 let fadeTime = 2; // 默认2秒
 let wordLibrary = 'CET4-顺序.json'; // 默认词库
-let wordPath = 'word'; // 默认词库路径
 let currentWordIndex = 0; // 当前单词索引，用于顺序获取单词
 let audioApi = 'https://dict.youdao.com/dictvoice?type=0&audio='; // 默认音频API
 let wordHistory = []; // 单词历史记录
@@ -14,7 +13,8 @@ let historyIndex = -1; // 当前历史记录索引
 // 加载单词库
 async function loadWords() {
   try {
-    const response = await fetch(chrome.runtime.getURL(`${wordPath}/${wordLibrary}`));
+    // 默认使用word文件夹作为词库路径
+    const response = await fetch(chrome.runtime.getURL(`word/${wordLibrary}`));
     words = await response.json();
     console.log('词库加载成功:', wordLibrary, '共', words.length, '个单词');
     
@@ -25,7 +25,7 @@ async function loadWords() {
     // 尝试加载可用的词库文件
     try {
       // 尝试加载CET4-顺序.json
-      const response = await fetch(chrome.runtime.getURL(`${wordPath}/CET4-顺序.json`));
+      const response = await fetch(chrome.runtime.getURL('word/CET4-顺序.json'));
       words = await response.json();
       wordLibrary = 'CET4-顺序.json'; // 更新词库名称
       console.log('加载CET4-顺序.json成功');
@@ -130,13 +130,12 @@ function savePosition() {
 // 加载设置
 function loadSettings() {
   return new Promise((resolve) => {
-    chrome.storage.sync.get(['showBoth', 'playAudio', 'fadeTime', 'wordLibrary', 'audioApi', 'wordPath'], function(data) {
+    chrome.storage.sync.get(['showBoth', 'playAudio', 'fadeTime', 'wordLibrary', 'audioApi'], function(data) {
       showBoth = data.showBoth || false;
       playAudioEnabled = data.playAudio !== false; // 默认开启
       fadeTime = data.fadeTime || 2; // 默认2秒
       wordLibrary = data.wordLibrary || 'CET4-顺序.json'; // 默认词库
       audioApi = data.audioApi || 'https://dict.youdao.com/dictvoice?type=0&audio='; // 默认音频API
-      wordPath = data.wordPath || 'word'; // 默认词库路径
       resolve();
     });
   });
@@ -871,17 +870,6 @@ async function init() {
     if (changes.wordLibrary) {
       wordLibrary = changes.wordLibrary.newValue;
       console.log('wordLibrary更新为:', wordLibrary);
-      // 重新加载词库
-      loadWords().then(() => {
-        // 重新初始化音频缓存
-        cachedWordIndices.clear();
-        usedWordCount = 0;
-        initAudioCache();
-      });
-    }
-    if (changes.wordPath) {
-      wordPath = changes.wordPath.newValue || 'word';
-      console.log('wordPath更新为:', wordPath);
       // 重新加载词库
       loadWords().then(() => {
         // 重新初始化音频缓存

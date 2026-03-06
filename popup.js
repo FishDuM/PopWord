@@ -7,8 +7,8 @@ async function scanWordLibraries() {
   const libraryFiles = [];
   
   try {
-    // 获取用户设置的词库路径，默认使用word
-    const wordPath = document.getElementById('wordPath').value || 'word';
+    // 默认使用word文件夹作为词库路径
+    const wordPath = 'word';
     
     // 使用chrome.runtime.getPackageDirectoryEntry获取扩展目录
     const rootEntry = await new Promise((resolve, reject) => {
@@ -82,7 +82,7 @@ async function scanWordLibraries() {
 // 加载保存的设置
 async function loadSettings() {
   const data = await new Promise((resolve) => {
-    chrome.storage.sync.get(['showBoth', 'playAudio', 'fadeTime', 'wordLibrary', 'audioApi', 'wordPath'], resolve);
+    chrome.storage.sync.get(['showBoth', 'playAudio', 'fadeTime', 'wordLibrary', 'audioApi'], resolve);
   });
   
   document.getElementById('showBoth').checked = data.showBoth || false;
@@ -90,8 +90,6 @@ async function loadSettings() {
   document.getElementById('fadeTime').value = data.fadeTime || 2; // 默认2秒
   // 设置音频API，默认使用有道词典API
   document.getElementById('audioApi').value = data.audioApi || 'https://dict.youdao.com/dictvoice?type=0&audio=';
-  // 设置词库路径，默认使用word路径
-  document.getElementById('wordPath').value = data.wordPath || 'word';
   
   // 先扫描词库
   await scanWordLibraries();
@@ -155,9 +153,8 @@ function saveSettings() {
   const fadeTime = parseInt(document.getElementById('fadeTime').value) || 2;
   const wordLibrary = document.getElementById('wordLibrary').value;
   const audioApi = document.getElementById('audioApi').value || 'https://dict.youdao.com/dictvoice?type=0&audio=';
-  const wordPath = document.getElementById('wordPath').value || 'word';
   
-  chrome.storage.sync.set({ showBoth: showBoth, playAudio: playAudio, fadeTime: fadeTime, wordLibrary: wordLibrary, audioApi: audioApi, wordPath: wordPath }, function() {
+  chrome.storage.sync.set({ showBoth: showBoth, playAudio: playAudio, fadeTime: fadeTime, wordLibrary: wordLibrary, audioApi: audioApi }, function() {
     // 显示保存成功消息
     const statusMessage = document.getElementById('statusMessage');
     statusMessage.style.display = 'block';
