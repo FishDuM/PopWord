@@ -48,13 +48,13 @@ async function loadWords() {
     console.error('加载单词库失败:', error);
     // 尝试加载可用的词库文件
     try {
-      // 尝试加载CET4-顺序.json
+      // 尝试加载CET4.json
       const response = await fetch(chrome.runtime.getURL('word/CET4-顺序.json'));
       words = await response.json();
       shuffle(words);
       currentWordIndex = 0;
-      wordLibrary = 'CET4-顺序.json'; // 更新词库名称
-      console.log('加载CET4-顺序.json成功（已随机顺序）');
+      wordLibrary = 'CET4.json'; // 更新词库名称
+      console.log('加载CET4.json成功');
       
       // 加载历史记录，获取上次的遍历位置
       await loadHistory();
