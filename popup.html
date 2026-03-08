@@ -1,44 +1,119 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <title>单词学习系统设置</title>
   <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --surface: #ffffff;
+      --background: #f8fafc;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --success: #10b981;
+      --secondary: #64748b;
+      --radius: 8px;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      padding: 15px;
-      width: 250px;
-      background: #ffffff;
-      border-radius: 10px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-      border: 1px solid #e0e0e0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 20px;
+      width: 320px; /* 稍微加宽一点，让元素有呼吸感 */
+      background: var(--surface);
+      margin: 0;
+      color: var(--text-main);
     }
-    h1 {
-      font-size: 16px;
-      margin-bottom: 15px;
-      color: #333;
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
     }
+
+    .header h1 {
+      font-size: 18px;
+      margin: 0;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .setting-group {
+      margin-bottom: 16px;
+    }
+
     .setting-item {
-      margin-bottom: 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      margin-bottom: 12px;
     }
+
+    .setting-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
     .setting-label {
-      font-size: 13px;
-      color: #333;
+      font-size: 14px;
+      font-weight: 500;
     }
+
+    .setting-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* 统一输入框样式 */
+    .input-box {
+      width: 130px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--text-main);
+      background-color: var(--background);
+      transition: all 0.2s;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .input-box:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+      background-color: var(--surface);
+    }
+
+    input[type="number"].input-box {
+      width: 80px;
+      text-align: center;
+    }
+
+    /* iOS 风格 Toggle 开关 */
     .toggle-switch {
       position: relative;
       display: inline-block;
-      width: 40px;
-      height: 20px;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
     }
+
     .toggle-switch input {
       opacity: 0;
       width: 0;
       height: 0;
     }
+
     .toggle-slider {
       position: absolute;
       cursor: pointer;
@@ -46,108 +121,211 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: #ccc;
-      transition: .4s;
-      border-radius: 20px;
+      background-color: #cbd5e1;
+      transition: .3s;
+      border-radius: 24px;
     }
+
     .toggle-slider:before {
       position: absolute;
       content: "";
-      height: 14px;
-      width: 14px;
+      height: 18px;
+      width: 18px;
       left: 3px;
       bottom: 3px;
       background-color: white;
-      transition: .4s;
+      transition: .3s;
       border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+
     input:checked + .toggle-slider {
-      background-color: #2196F3;
+      background-color: var(--success);
     }
+
     input:checked + .toggle-slider:before {
       transform: translateX(20px);
     }
-    .status-message {
-      margin-top: 10px;
+
+    /* 按钮组与按钮样式 */
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: white;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary { background-color: var(--primary); margin-top: 8px; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background-color: var(--primary-hover); }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-secondary { background-color: var(--secondary); }
+    .btn-secondary:hover { background-color: #475569; }
+
+    .btn-warning { background-color: var(--warning); }
+    .btn-warning:hover { background-color: #d97706; }
+
+    .btn-danger { background-color: var(--danger); }
+    .btn-danger:hover { background-color: #dc2626; }
+
+    .btn-purple { background-color: #8b5cf6; }
+    .btn-purple:hover { background-color: #7c3aed; }
+
+    #cacheInfo {
+      margin-top: 16px;
       font-size: 12px;
-      color: #4CAF50;
+      color: var(--text-muted);
+      text-align: center;
+      background: var(--background);
+      padding: 6px;
+      border-radius: 6px;
+    }
+
+    .status-message {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--success);
+      text-align: center;
+      font-weight: 500;
       display: none;
+    }
+
+    /* 监控面板样式 */
+    #monitoringPanel {
+      margin-top: 16px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background-color: var(--background);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    #monitoringPanel h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: var(--text-main);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    #monitoringContent {
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    #closeMonitoringPanel {
+      background-color: var(--text-muted);
     }
   </style>
 </head>
 <body>
-  <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
-    <h1 style="font-size: 16px; margin: 0; color: #333;">PopWord 弹词</h1>
+  <div class="header">
+    <h1>PopWord 弹词</h1>
   </div>
   
-  <div class="setting-item">
-    <span class="setting-label">单词和汉字同时出现</span>
-    <label class="toggle-switch">
-      <input type="checkbox" id="showBoth">
-      <span class="toggle-slider"></span>
-    </label>
-  </div>
-  
-  <div class="setting-item">
-    <span class="setting-label">播放单词录音</span>
-    <label class="toggle-switch">
-      <input type="checkbox" id="playAudio">
-      <span class="toggle-slider"></span>
-    </label>
-  </div>
-  
-  <div class="setting-item">
-    <span class="setting-label">元素消失时间 (秒)</span>
-    <input type="number" id="fadeTime" min="1" max="10" value="2" style="width: 60px; padding: 4px; border: 1px solid #ddd; border-radius: 4px;">
-  </div>
-  
-  <div class="setting-item">
-    <span class="setting-label">词库选择</span>
-    <select id="wordLibrary" style="width: 120px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
-      <option value="default.json">默认词库</option>
-      <option value="basic.json">基础词库</option>
-    </select>
-  </div>
-  
-  <div class="setting-item">
-    <span class="setting-label">音频API</span>
-    <input type="text" id="audioApi" style="width: 180px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;" placeholder="输入音频API地址">
-  </div>
-  
-  <div class="setting-item">
-    <span class="setting-label">下一个单词按键</span>
-    <input type="text" id="nextKey" style="width: 80px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;" placeholder="按键或鼠标">
-    <small style="font-size: 10px; color: #666; display: block; margin-top: 2px;">提示：输入 "鼠标左键" 或 "鼠标右键" 启用鼠标触发</small>
-  </div>
-  
-  <div class="setting-item">
-    <span class="setting-label">上一个单词按键</span>
-    <input type="text" id="prevKey" style="width: 80px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;" placeholder="按键或鼠标">
-    <small style="font-size: 10px; color: #666; display: block; margin-top: 2px;">提示：输入 "鼠标左键" 或 "鼠标右键" 启用鼠标触发</small>
-  </div>
-  
-  <button class="save-button" id="saveButton" style="margin-top: 15px; width: 100%; padding: 8px; background-color: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">保存设置</button>
-  
-  <button class="save-button" id="toggleEnabledButton" style="margin-top: 10px; width: 100%; padding: 8px; background-color: #607D8B; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">关闭弹词</button>
-  
-  <button class="save-button" id="clearCacheButton" style="margin-top: 10px; width: 100%; padding: 8px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">删除缓存</button>
-  
-  <button class="save-button" id="resetLibraryButton" style="margin-top: 10px; width: 100%; padding: 8px; background-color: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">重置词库</button>
-  
-  <button class="save-button" id="monitoringPanelButton" style="margin-top: 10px; width: 100%; padding: 8px; background-color: #9c27b0; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">监控面板</button>
-  
-  <div id="cacheInfo" style="margin-top: 10px; font-size: 12px; color: #666; text-align: center;">当前缓存: 0 个音频</div>
-  
-  <!-- 监控面板 -->
-  <div id="monitoringPanel" style="display: none; margin-top: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #f9f9f9;">
-    <h3 style="margin-top: 0; font-size: 14px; color: #333;">监控面板</h3>
-    <div id="monitoringContent" style="max-height: 300px; overflow-y: auto;">
-      <!-- 监控数据将在这里显示 -->
+  <div class="setting-group">
+    <div class="setting-item">
+      <span class="setting-label">单词和汉字同时出现</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="showBoth">
+        <span class="toggle-slider"></span>
+      </label>
     </div>
-    <button id="closeMonitoringPanel" style="margin-top: 10px; width: 100%; padding: 6px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">关闭</button>
+    
+    <div class="setting-item">
+      <span class="setting-label">播放单词录音</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="playAudio">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    
+    <div class="setting-item">
+      <span class="setting-label">元素消失时间 (秒)</span>
+      <input type="number" id="fadeTime" class="input-box" min="1" max="10" value="2">
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-item">
+      <span class="setting-label">词库选择</span>
+      <select id="wordLibrary" class="input-box">
+        <option value="default.json">默认词库</option>
+        <option value="basic.json">基础词库</option>
+      </select>
+    </div>
+    
+    <div class="setting-item">
+      <span class="setting-label">音频 API</span>
+      <input type="text" id="audioApi" class="input-box" placeholder="输入 API 地址">
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-item">
+      <div class="setting-info">
+        <span class="setting-label">下一个单词按键</span>
+        <span class="setting-hint">输入"鼠标左键"或"右键"</span>
+      </div>
+      <input type="text" id="nextKey" class="input-box" style="width: 100px;" placeholder="按键/鼠标">
+    </div>
+    
+    <div class="setting-item">
+      <div class="setting-info">
+        <span class="setting-label">上一个单词按键</span>
+        <span class="setting-hint">输入"鼠标左键"或"右键"</span>
+      </div>
+      <input type="text" id="prevKey" class="input-box" style="width: 100px;" placeholder="按键/鼠标">
+    </div>
+  </div>
+
+  <button class="btn btn-primary" id="saveButton">保存设置</button>
+  <div class="status-message" id="statusMessage">设置已保存</div>
+  
+  <div class="action-grid">
+    <button class="btn btn-secondary" id="toggleEnabledButton">关闭弹词</button>
+    <button class="btn btn-purple" id="monitoringPanelButton">监控面板</button>
+    <button class="btn btn-warning" id="resetLibraryButton">重置词库</button>
+    <button class="btn btn-danger" id="clearCacheButton">删除缓存</button>
   </div>
   
-  <div class="status-message" id="statusMessage">设置已保存</div>
+  <div id="cacheInfo">当前缓存: 0 个音频</div>
+  
+  <div id="monitoringPanel" style="display: none;">
+    <h3>监控数据</h3>
+    <div id="monitoringContent">
+      </div>
+    <button class="btn" id="closeMonitoringPanel">关闭面板</button>
+  </div>
   
   <script src="popup.js"></script>
 </body>
