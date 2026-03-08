@@ -49,12 +49,12 @@ async function loadWords() {
     // 尝试加载可用的词库文件
     try {
       // 尝试加载CET4.json
-      const response = await fetch(chrome.runtime.getURL('word/CET4-顺序.json'));
+      const response = await fetch(chrome.runtime.getURL('word/CET4.json'));
       words = await response.json();
       shuffle(words);
       currentWordIndex = 0;
       wordLibrary = 'CET4.json'; // 更新词库名称
-      console.log('加载CET4.json成功');
+      console.log('加载CET4.json成功（已随机顺序）');
       
       // 加载历史记录，获取上次的遍历位置
       await loadHistory();
@@ -170,7 +170,7 @@ function loadSettings() {
       showBoth = data.showBoth || false;
       playAudioEnabled = data.playAudio !== false; // 默认开启
       fadeTime = data.fadeTime || 2; // 默认2秒
-      wordLibrary = data.wordLibrary || 'CET4-顺序.json'; // 默认词库
+      wordLibrary = data.wordLibrary || 'CET4.json'; // 默认词库
       audioApi = data.audioApi || 'https://dict.youdao.com/dictvoice?type=0&audio='; // 默认音频API
       nextKey = data.nextKey || '鼠标左键'; // 下一个单词按键，默认鼠标左键
       prevKey = data.prevKey || '鼠标右键'; // 上一个单词按键，默认鼠标右键

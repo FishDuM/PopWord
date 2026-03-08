@@ -47,8 +47,8 @@ async function scanWordLibraries() {
     }
   } catch (error) {
     console.error('扫描词库文件失败:', error);
-    // 如果无法获取文件列表，使用CET4-顺序.json
-    libraryFiles.push('CET4-顺序.json');
+    // 如果无法获取文件列表，使用CET4.json
+    libraryFiles.push('CET4.json');
   }
   
   // 从文件名生成词库名称并添加到下拉菜单
@@ -106,7 +106,7 @@ async function loadSettings() {
     wordLibrarySelect.value = wordLibrarySelect.options[0].value;
   } else {
     // 设置选中的词库
-    document.getElementById('wordLibrary').value = data.wordLibrary || (wordLibrarySelect.options.length > 0 ? wordLibrarySelect.options[0].value : 'CET4-顺序.json');
+    document.getElementById('wordLibrary').value = data.wordLibrary || (wordLibrarySelect.options.length > 0 ? wordLibrarySelect.options[0].value : 'CET4.json');
   }
   
   // 监听词库变化事件，当词库改变时重新加载音频
