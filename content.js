@@ -4,7 +4,7 @@ let clickCount = 0;
 let showBoth = false;
 let playAudioEnabled = true;
 let fadeTime = 2; // 默认2秒
-let wordLibrary = 'CET4-顺序.json'; // 默认词库
+let wordLibrary = 'CET4.json'; // 默认词库
 let currentWordIndex = 0; // 当前单词索引，用于顺序获取单词
 let audioApi = 'https://dict.youdao.com/dictvoice?type=0&audio='; // 默认音频API
 let wordHistory = []; // 单词历史记录
@@ -48,13 +48,13 @@ async function loadWords() {
     console.error('加载单词库失败:', error);
     // 尝试加载可用的词库文件
     try {
-      // 尝试加载CET4-顺序.json
-      const response = await fetch(chrome.runtime.getURL('word/CET4-顺序.json'));
+      // 尝试加载CET4.json
+      const response = await fetch(chrome.runtime.getURL('word/CET4.json'));
       words = await response.json();
       shuffle(words);
       currentWordIndex = 0;
-      wordLibrary = 'CET4-顺序.json'; // 更新词库名称
-      console.log('加载CET4-顺序.json成功（已随机顺序）');
+      wordLibrary = 'CET4.json'; // 更新词库名称
+      console.log('加载CET4.json成功（已随机顺序）');
       
       // 加载历史记录，获取上次的遍历位置
       await loadHistory();
@@ -170,7 +170,7 @@ function loadSettings() {
       showBoth = data.showBoth || false;
       playAudioEnabled = data.playAudio !== false; // 默认开启
       fadeTime = data.fadeTime || 2; // 默认2秒
-      wordLibrary = data.wordLibrary || 'CET4-顺序.json'; // 默认词库
+      wordLibrary = data.wordLibrary || 'CET4.json'; // 默认词库
       audioApi = data.audioApi || 'https://dict.youdao.com/dictvoice?type=0&audio='; // 默认音频API
       nextKey = data.nextKey || '鼠标左键'; // 下一个单词按键，默认鼠标左键
       prevKey = data.prevKey || '鼠标右键'; // 上一个单词按键，默认鼠标右键
